@@ -1,3 +1,4 @@
-[submodule "subpack"]
-	path = subpack
+[submodule "impact_subpack"]
+	path = impact_subpack
 	url = https://github.com/ltdrdata/ComfyUI-Impact-Subpack
+	commit = 9c376c1
