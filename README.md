@@ -9,6 +9,8 @@ This is a fork of the ComfyUI Impact Pack which:
 
 Updated to work with https://github.com/fofr/cog-comfyui in a docker container.
 
+[Compare changes](https://github.com/ltdrdata/ComfyUI-Impact-Pack/compare/Main...fofr:ComfyUI-Impact-Pack:Main)
+
 ---
 
 [![Youtube Badge](https://img.shields.io/badge/Youtube-FF0000?style=for-the-badge&logo=Youtube&logoColor=white&link=https://www.youtube.com/watch?v=AccoxDZIg3Y&list=PL_Ej2RDzjQLGfEeizq4GISeY3FtVyFmGP)](https://www.youtube.com/watch?v=AccoxDZIg3Y&list=PL_Ej2RDzjQLGfEeizq4GISeY3FtVyFmGP)
