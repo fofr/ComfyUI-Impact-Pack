@@ -1,4 +1,3 @@
-import torch
 from segment_anything import SamPredictor
 
 from impact.utils import *
@@ -18,6 +17,11 @@ from comfy import model_management
 from impact import utils
 from impact import impact_sampling
 from concurrent.futures import ThreadPoolExecutor
+
+try:
+    from comfy_extras import nodes_differential_diffusion
+except Exception:
+    print(f"[Impact Pack] ComfyUI is an outdated version. The DifferentialDiffusion feature will be disabled.")
 
 
 SEG = namedtuple("SEG",
@@ -161,6 +165,12 @@ def enhance_detail(image, model, clip, vae, guide_size, guide_size_for_bbox, max
         noise_mask = utils.tensor_gaussian_blur_mask(noise_mask, noise_mask_feather)
         noise_mask = noise_mask.squeeze(3)
 
+        if noise_mask_feather > 0:
+            try:
+                model = nodes_differential_diffusion.DifferentialDiffusion().apply(model)[0]
+            except Exception:
+                print(f"[Impact Pack] ComfyUI is an outdated version. The DifferentialDiffusion feature will be disabled.")
+
     if wildcard_opt is not None and wildcard_opt != "":
         model, _, wildcard_positive = wildcards.process_with_loras(wildcard_opt, model, clip)
 
@@ -225,6 +235,8 @@ def enhance_detail(image, model, clip, vae, guide_size, guide_size_for_bbox, max
     cnet_pils = None
     if control_net_wrapper is not None:
         positive, negative, cnet_pils = control_net_wrapper.apply(positive, negative, upscaled_image, noise_mask)
+        model, cnet_pils2 = control_net_wrapper.doit_ipadapter(model)
+        cnet_pils.extend(cnet_pils2)
 
     # prepare mask
     if noise_mask is not None and inpaint_model:
@@ -459,16 +471,58 @@ def sam_predict(predictor, points, plabs, bbox, threshold):
     return total_masks
 
 
-def make_sam_mask(sam_model, segs, image, detection_hint, dilation,
+class SAMWrapper:
+    def __init__(self, model, is_auto_mode, safe_to_gpu=None):
+        self.model = model
+        self.safe_to_gpu = safe_to_gpu if safe_to_gpu is not None else SafeToGPU_stub()
+        self.is_auto_mode = is_auto_mode
+
+    def prepare_device(self):
+        if self.is_auto_mode:
+            device = comfy.model_management.get_torch_device()
+            self.safe_to_gpu.to_device(self.model, device=device)
+
+    def release_device(self):
+        if self.is_auto_mode:
+            self.model.to(device="cpu")
+
+    def predict(self, image, points, plabs, bbox, threshold):
+        predictor = SamPredictor(self.model)
+        predictor.set_image(image, "RGB")
+
+        return sam_predict(predictor, points, plabs, bbox, threshold)
+
+
+class ESAMWrapper:
+    def __init__(self, model, device):
+        self.model = model
+        self.func_inference = nodes.NODE_CLASS_MAPPINGS['Yoloworld_ESAM_Zho']
+        self.device = device
+
+    def prepare_device(self):
+        pass
+
+    def release_device(self):
+        pass
+
+    def predict(self, image, points, plabs, bbox, threshold):
+        if self.device == 'CPU':
+            self.device = 'cpu'
+        else:
+            self.device = 'cuda'
+
+        detected_masks = self.func_inference.inference_sam_with_boxes(image=image, xyxy=[bbox], model=self.model, device=self.device)
+        return [detected_masks.squeeze(0)]
+
+
+def make_sam_mask(sam, segs, image, detection_hint, dilation,
                   threshold, bbox_expansion, mask_hint_threshold, mask_hint_use_negative):
-    if sam_model.is_auto_mode:
-        device = comfy.model_management.get_torch_device()
-        sam_model.safe_to.to_device(sam_model, device=device)
+
+    sam_obj = sam.sam_wrapper
+    sam_obj.prepare_device()
 
     try:
-        predictor = SamPredictor(sam_model)
         image = np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8)
-        predictor.set_image(image, "RGB")
 
         total_masks = []
 
@@ -491,7 +545,7 @@ def make_sam_mask(sam_model, segs, image, detection_hint, dilation,
                 else:
                     plabs.append(1)
 
-            detected_masks = sam_predict(predictor, points, plabs, None, threshold)
+            detected_masks = sam_obj.predict(image, points, plabs, None, threshold)
             total_masks += detected_masks
 
         else:
@@ -560,15 +614,14 @@ def make_sam_mask(sam_model, segs, image, detection_hint, dilation,
                     points += npoints
                     plabs += nplabs
 
-                detected_masks = sam_predict(predictor, points, plabs, dilated_bbox, threshold)
+                detected_masks = sam_obj.predict(image, points, plabs, dilated_bbox, threshold)
                 total_masks += detected_masks
 
         # merge every collected masks
         mask = combine_masks2(total_masks)
 
     finally:
-        if sam_model.is_auto_mode:
-            sam_model.to(device="cpu")
+        sam_obj.release_device()
 
     if mask is not None:
         mask = mask.float()
@@ -723,16 +776,13 @@ def every_three_pick_last(stacked_masks):
     return selected_masks
 
 
-def make_sam_mask_segmented(sam_model, segs, image, detection_hint, dilation,
+def make_sam_mask_segmented(sam, segs, image, detection_hint, dilation,
                             threshold, bbox_expansion, mask_hint_threshold, mask_hint_use_negative):
-    if sam_model.is_auto_mode:
-        device = comfy.model_management.get_torch_device()
-        sam_model.safe_to.to_device(sam_model, device=device)
+    sam_obj = sam.sam_wrapper
+    sam_obj.prepare_device()
 
     try:
-        predictor = SamPredictor(sam_model)
         image = np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8)
-        predictor.set_image(image, "RGB")
 
         total_masks = []
 
@@ -755,7 +805,7 @@ def make_sam_mask_segmented(sam_model, segs, image, detection_hint, dilation,
                 else:
                     plabs.append(1)
 
-            detected_masks = sam_predict(predictor, points, plabs, None, threshold)
+            detected_masks = sam_obj.predict(image, points, plabs, None, threshold)
             total_masks += detected_masks
 
         else:
@@ -773,7 +823,7 @@ def make_sam_mask_segmented(sam_model, segs, image, detection_hint, dilation,
                                                          mask_hint_threshold, use_small_negative,
                                                          mask_hint_use_negative)
 
-                detected_masks = sam_predict(predictor, points, plabs, dilated_bbox, threshold)
+                detected_masks = sam_obj.predict(image, points, plabs, dilated_bbox, threshold)
 
                 total_masks += detected_masks
 
@@ -781,10 +831,7 @@ def make_sam_mask_segmented(sam_model, segs, image, detection_hint, dilation,
         mask = combine_masks2(total_masks)
 
     finally:
-        if sam_model.is_auto_mode:
-            sam_model.cpu()
-
-        pass
+        sam_obj.release_device()
 
     mask_working_device = torch.device("cpu")
 
@@ -1302,6 +1349,7 @@ class TwoSamplersForMaskUpscaler:
         self.hook_full = hook_full_opt
         self.use_tiled_vae = use_tiled_vae
         self.tile_size = tile_size
+        self.is_tiled = False
         self.vae = vae
 
     def upscale(self, step_info, samples, upscale_factor, save_temp_prefix=None):
@@ -1491,9 +1539,61 @@ class PixelKSampleUpscaler:
         return refined_latent
 
 
+class IPAdapterWrapper:
+    def __init__(self, ipadapter_pipe, weight, noise, weight_type, start_at, end_at, unfold_batch, weight_v2, reference_image, neg_image=None, prev_control_net=None, combine_embeds='concat'):
+        self.reference_image = reference_image
+        self.ipadapter_pipe = ipadapter_pipe
+        self.weight = weight
+        self.weight_type = weight_type
+        self.noise = noise
+        self.start_at = start_at
+        self.end_at = end_at
+        self.unfold_batch = unfold_batch
+        self.prev_control_net = prev_control_net
+        self.weight_v2 = weight_v2
+        self.image = reference_image
+        self.neg_image = neg_image
+        self.combine_embeds = combine_embeds
+
+    # name 'apply_ipadapter' isn't allowed
+    def doit_ipadapter(self, model):
+        cnet_image_list = [self.image]
+        prev_cnet_images = []
+
+        if 'IPAdapterAdvanced' not in nodes.NODE_CLASS_MAPPINGS:
+            if 'IPAdapterApply' in nodes.NODE_CLASS_MAPPINGS:
+                raise Exception(f"[ERROR] 'ComfyUI IPAdapter Plus' is outdated.")
+
+            utils.try_install_custom_node('https://github.com/cubiq/ComfyUI_IPAdapter_plus',
+                                          "To use 'IPAdapterApplySEGS' node, 'ComfyUI IPAdapter Plus' extension is required.")
+            raise Exception(f"[ERROR] To use IPAdapterApplySEGS, you need to install 'ComfyUI IPAdapter Plus'")
+
+        obj = nodes.NODE_CLASS_MAPPINGS['IPAdapterAdvanced']
+
+        ipadapter, _, clip_vision, insightface, lora_loader = self.ipadapter_pipe
+        model = lora_loader(model)
+
+        if self.prev_control_net is not None:
+            model, prev_cnet_images = self.prev_control_net.doit_ipadapter(model)
+
+        model = obj().apply_ipadapter(model=model, ipadapter=ipadapter, weight=self.weight, weight_type=self.weight_type,
+                                      start_at=self.start_at, end_at=self.end_at, combine_embeds=self.combine_embeds,
+                                      clip_vision=clip_vision, image=self.image, image_negative=self.neg_image, attn_mask=None,
+                                      insightface=insightface, weight_faceidv2=self.weight_v2)[0]
+
+        cnet_image_list.extend(prev_cnet_images)
+
+        return model, cnet_image_list
+
+    def apply(self, positive, negative, image, mask=None, use_acn=False):
+        if self.prev_control_net is not None:
+            return self.prev_control_net.apply(positive, negative, image, mask, use_acn=use_acn)
+        else:
+            return positive, negative, []
+
+
 class ControlNetWrapper:
-    def __init__(self, control_net, strength, preprocessor, prev_control_net=None,
-                 original_size=None, crop_region=None, control_image=None):
+    def __init__(self, control_net, strength, preprocessor, prev_control_net=None, original_size=None, crop_region=None, control_image=None):
         self.control_net = control_net
         self.strength = strength
         self.preprocessor = preprocessor
@@ -1536,6 +1636,12 @@ class ControlNetWrapper:
 
         return positive, negative, cnet_image_list
 
+    def doit_ipadapter(self, model):
+        if self.prev_control_net is not None:
+            return self.prev_control_net.doit_ipadapter(model)
+        else:
+            return model, []
+
 
 class ControlNetAdvancedWrapper:
     def __init__(self, control_net, strength, start_percent, end_percent, preprocessor, prev_control_net=None,
@@ -1552,6 +1658,12 @@ class ControlNetAdvancedWrapper:
             self.control_image = torch.tensor(utils.tensor_crop(self.control_image, crop_region))
         else:
             self.control_image = None
+
+    def doit_ipadapter(self, model):
+        if self.prev_control_net is not None:
+            return self.prev_control_net.doit_ipadapter(model)
+        else:
+            return model, []
 
     def apply(self, positive, negative, image, mask=None, use_acn=False):
         cnet_image_list = []
@@ -1755,7 +1867,7 @@ def random_mask_raw(mask, bbox, factor):
     w = x2 - x1
     h = y2 - y1
 
-    factor = int(min(w, h) * factor / 4)
+    factor = max(6, int(min(w, h) * factor / 4))
 
     def draw_random_circle(center, radius):
         i, j = center
@@ -1813,6 +1925,12 @@ def adaptive_mask_paste(dest_mask, src_mask, bbox):
     bbox_mask = torch.nn.functional.interpolate(small_mask, size=(y2 - y1, x2 - x1), mode='bilinear', align_corners=False)
     bbox_mask = bbox_mask.squeeze(0).squeeze(0)
     dest_mask[y1:y2, x1:x2] = bbox_mask
+
+
+def crop_condition_mask(mask, image, crop_region):
+    cond_scale = (mask.shape[1] / image.shape[1], mask.shape[2] / image.shape[2])
+    mask_region = [round(v * cond_scale[i % 2]) for i, v in enumerate(crop_region)]
+    return crop_ndarray3(mask, mask_region)
 
 
 class SafeToGPU:
