@@ -1,3 +1,18 @@
+# Fork for cog-comfyui
+
+This is a fork of the ComfyUI Impact Pack which:
+
+- prevents any automatic installation
+- loads the impact_subpack as a submodule
+- includes a default config
+- prevents automatic deletion of the impact_subpack directory if `.git` is missing
+
+Updated to work with https://github.com/fofr/cog-comfyui in a docker container.
+
+[Compare changes](https://github.com/ltdrdata/ComfyUI-Impact-Pack/compare/Main...fofr:ComfyUI-Impact-Pack:Main)
+
+---
+
 [![Youtube Badge](https://img.shields.io/badge/Youtube-FF0000?style=for-the-badge&logo=Youtube&logoColor=white&link=https://www.youtube.com/watch?v=AccoxDZIg3Y&list=PL_Ej2RDzjQLGfEeizq4GISeY3FtVyFmGP)](https://www.youtube.com/watch?v=AccoxDZIg3Y&list=PL_Ej2RDzjQLGfEeizq4GISeY3FtVyFmGP)
 
 # ComfyUI-Impact-Pack
@@ -6,15 +21,15 @@
 This custom node helps to conveniently enhance images through Detector, Detailer, Upscaler, Pipe, and more.
 
 
-## NOTICE 
-* V5.0: It is no longer compatible with versions of ComfyUI before 2024.04.08. 
+## NOTICE
+* V5.0: It is no longer compatible with versions of ComfyUI before 2024.04.08.
 * V4.87.4: Update to a version of ComfyUI after 2024.04.08 for proper functionality.
 * V4.85: Incompatible with the outdated **ComfyUI IPAdapter Plus**. (A version dated March 24th or later is required.)
 * V4.77: Compatibility patch applied. Requires ComfyUI version (Oct. 8th) or later.
 * V4.73.3: ControlNetApply (SEGS) supports AnimateDiff
 * V4.20.1: Due to the feature update in `RegionalSampler`, the parameter order has changed, causing malfunctions in previously created `RegionalSamplers`. Please adjust the parameters accordingly.
 * V4.12: `MASKS` is changed to `MASK`.
-* V4.7.2 isn't compatible with old version of `ControlNet Auxiliary Preprocessor`. If you will use `MediaPipe FaceMesh to SEGS` update to latest version(Sep. 17th).  
+* V4.7.2 isn't compatible with old version of `ControlNet Auxiliary Preprocessor`. If you will use `MediaPipe FaceMesh to SEGS` update to latest version(Sep. 17th).
 * Selection weight syntax is changed(: -> ::) since V3.16. ([tutorial](https://github.com/ltdrdata/ComfyUI-extension-tutorials/blob/Main/ComfyUI-Impact-Pack/tutorial/ImpactWildcardProcessor.md))
 * Starting from V3.6, requires latest version(Aug 8, 9ccc965) of ComfyUI.
 * **In versions below V3.3.1, there was an issue with the image quality generated after using the UltralyticsDetectorProvider. Please make sure to upgrade to a newer version.**
@@ -76,7 +91,7 @@ This custom node helps to conveniently enhance images through Detector, Detailer
     * When using a single mask, convert it to SEGS to apply it to the entire frame.
     * When using a batch mask, the contour fill feature is disabled.
   * `MediaPipe FaceMesh to SEGS` - Separate each landmark from the mediapipe facemesh image to create labeled SEGS.
-    * Usually, the size of images created through the MediaPipe facemesh preprocessor is downscaled. It resizes the MediaPipe facemesh image to the original size given as reference_image_opt for matching sizes during processing. 
+    * Usually, the size of images created through the MediaPipe facemesh preprocessor is downscaled. It resizes the MediaPipe facemesh image to the original size given as reference_image_opt for matching sizes during processing.
   * `ToBinaryMask` - Separates the mask generated with alpha values between 0 and 255 into 0 and 255. The non-zero parts are always set to 255.
   * `Masks to Mask List` - This node converts the MASKS in batch form to a list of individual masks.
   * `Mask List to Masks` - This node converts the MASK list to MASK batch form.
@@ -99,14 +114,14 @@ This custom node helps to conveniently enhance images through Detector, Detailer
   * `SEGSPreview (CNET Image)` - Show images configured with `ControlNetApply (SEGS)` for debugging purposes.
   * `SEGSToImageList` - Convert SEGS To Image List
   * `SEGSToMaskList` - Convert SEGS To Mask List
-  * `SEGS Filter (label)` - This node filters SEGS based on the label of the detected areas. 
-  * `SEGS Filter (ordered)` - This node sorts SEGS based on size and position and retrieves SEGs within a certain range. 
+  * `SEGS Filter (label)` - This node filters SEGS based on the label of the detected areas.
+  * `SEGS Filter (ordered)` - This node sorts SEGS based on size and position and retrieves SEGs within a certain range.
   * `SEGS Filter (range)` - This node retrieves only SEGs from SEGS that have a size and position within a certain range.
   * `SEGS Assign (label)` - Assign labels sequentially to SEGS. This node is useful when used with `[LAB]` of FaceDetailer.
   * `SEGSConcat` - Concatenate segs1 and segs2. If source shape of segs1 and segs2 are different from segs2 will be ignored.
   * `Picker (SEGS)` - Among the input SEGS, you can select a specific SEG through a dialog. If no SEG is selected, it outputs an empty SEGS. Increasing the batch_size of SEGSDetailer can be used for the purpose of selecting from the candidates.
   * `Set Default Image For SEGS` - Set a default image for SEGS. SEGS with images set this way do not need to have a fallback image set. When override is set to false, the original image is preserved.
-  * `Remove Image from SEGS` - Remove the image set for the SEGS that has been configured by "Set Default Image for SEGS" or SEGSDetailer. When the image for the SEGS is removed, the Detailer node will operate based on the currently processed image instead of the SEGS. 
+  * `Remove Image from SEGS` - Remove the image set for the SEGS that has been configured by "Set Default Image for SEGS" or SEGSDetailer. When the image for the SEGS is removed, the Detailer node will operate based on the currently processed image instead of the SEGS.
   * `Make Tile SEGS` - [experimental] Create SEGS in the form of tiles from an image to facilitate experiments for Tiled Upscale using the Detailer.
     * The `filter_in_segs_opt` and `filter_out_segs_opt` are optional inputs. If these inputs are provided, when creating the tiles, the mask for each tile is generated by overlapping with the mask of `filter_in_segs_opt` and excluding the overlap with the mask of `filter_out_segs_opt`. Tiles with an empty mask will not be created as SEGS.
   * `Dilate Mask (SEGS)` - Dilate/Erosion Mask in SEGS
@@ -120,7 +135,7 @@ This custom node helps to conveniently enhance images through Detector, Detailer
     * `From SEG_ELT` bbox - Extract coordinate from bbox in SEG_ELT
     * `From SEG_ELT` crop_region - Extract coordinate from crop_region in SEG_ELT
   * `Count Elt in SEGS` - Number of Elts ins SEGS
- 
+
 ### Pipe nodes
    * `ToDetailerPipe`, `FromDetailerPipe` - These nodes are used to bundle multiple inputs used in the detailer, such as models and vae, ..., into a single DETAILER_PIPE or extract the elements that are bundled in the DETAILER_PIPE.
    * `ToBasicPipe`, `FromBasicPipe` - These nodes are used to bundle model, clip, vae, positive conditioning, and negative conditioning into a single BASIC_PIPE, or extract each element from the BASIC_PIPE.
@@ -145,11 +160,11 @@ This custom node helps to conveniently enhance images through Detector, Detailer
   * `UnsamplerHookProvider` - Apply Unsampler during each iteration. To use this node, ComfyUI_Noise must be installed.
   * `PixelKSampleHookCombine` - This is used to connect two PK_HOOKs. hook1 is executed first and then hook2 is executed.
     * If you want to simultaneously change cfg and denoise, you can combine the PK_HOOKs of CfgScheduleHookProvider and PixelKSampleHookCombine.
- 
+
 ### DETAILER_HOOK
   * `NoiseInjectionDetailerHookProvider` - The `detailer_hook` is a hook in the `Detailer` that injects noise during the processing of each SEGS.
   * `UnsamplerDetailerHookProvider` - Apply Unsampler during each cycle. To use this node, ComfyUI_Noise must be installed.
-  * `DenoiseSchedulerDetailerHookProvider` - During the progress of the cycle, the detailer's denoise is altered up to the `target_denoise`. 
+  * `DenoiseSchedulerDetailerHookProvider` - During the progress of the cycle, the detailer's denoise is altered up to the `target_denoise`.
   * `CoreMLDetailerHookProvider` - CoreML supports only 512x512, 512x768, 768x512, 768x768 size sampling. CoreMLDetailerHookProvider precisely fixes the upscale of the crop_region to this size. When using this hook, it will always be selected size, regardless of the guide_size. However, if the guide_size is too small, skipping will occur.
   * `DetailerHookCombine` - This is used to connect two DETAILER_HOOKs. Similar to PixelKSampleHookCombine.
   * `SEGSOrderedFilterDetailerHook`, SEGSRangeFilterDetailerHook, SEGSLabelFilterDetailerHook - There are a wrapper node that provides SEGSFilter nodes to be applied in FaceDetailer or Detector by creating DETAILER_HOOK.
@@ -158,7 +173,7 @@ This custom node helps to conveniently enhance images through Detector, Detailer
   * `VariationNoiseDetailerHookProvider` - Apply variation seed to the detailer. It can be applied in multiple stages through combine.
 
 ### Iterative Upscale nodes
-  * `Iterative Upscale (Latent/on Pixel Space)` - The upscaler takes the input upscaler and splits the scale_factor into steps, then iteratively performs upscaling. 
+  * `Iterative Upscale (Latent/on Pixel Space)` - The upscaler takes the input upscaler and splits the scale_factor into steps, then iteratively performs upscaling.
   This takes latent as input and outputs latent as the result.
   * `Iterative Upscale (Image)` - The upscaler takes the input upscaler and splits the scale_factor into steps, then iteratively performs upscaling. This takes image as input and outputs image as the result.
     * Internally, this node uses 'Iterative Upscale (Latent)'.
@@ -169,7 +184,7 @@ This custom node helps to conveniently enhance images through Detector, Detailer
 * `KSamplerProvider` - This is a wrapper that enables KSampler to be used in TwoSamplersForMask TwoSamplersForMaskUpscalerProvider.
 * `TiledKSamplerProvider` - ComfyUI_TiledKSampler is a wrapper that provides KSAMPLER.
   * You need to install the [BlenderNeko/ComfyUI_TiledKSampler](https://github.com/BlenderNeko/ComfyUI_TiledKSampler) node extension.
-  
+
 * `TwoAdvancedSamplersForMask` - TwoSamplersForMask is similar to TwoAdvancedSamplersForMask, but they differ in their operation. TwoSamplersForMask performs sampling in the mask area only after all the samples in the base area are finished. On the other hand, TwoAdvancedSamplersForMask performs sampling in both the base area and the mask area sequentially at each step.
 * `KSamplerAdvancedProvider` - This is a wrapper that enables KSampler to be used in TwoAdvancedSamplersForMask, RegionalSampler.
   * sigma_factor: By multiplying the denoise schedule by the sigma_factor, you can adjust the amount of denoising based on the configured denoise.
@@ -193,9 +208,9 @@ This custom node helps to conveniently enhance images through Detector, Detailer
 ### Switch nodes
   * `Switch (image,mask)`, `Switch (latent)`, `Switch (SEGS)` - Among multiple inputs, it selects the input designated by the selector and outputs it. The first input must be provided, while the others are optional. However, if the input specified by the selector is not connected, an error may occur.
   * `Switch (Any)` - This is a Switch node that takes an arbitrary number of inputs and produces a single output. Its type is determined when connected to any node, and connecting inputs increases the available slots for connections.
-  * `Inversed Switch (Any)` - In contrast to `Switch (Any)`, it takes a single input and outputs one of many. Due to ComfyUI's functional limitations, the value of `select` must be determined at the time of queuing a prompt, and while it can serve as a `Primitive Node` or `ImpactInt`, it cannot function properly when connected through other nodes. 
+  * `Inversed Switch (Any)` - In contrast to `Switch (Any)`, it takes a single input and outputs one of many. Due to ComfyUI's functional limitations, the value of `select` must be determined at the time of queuing a prompt, and while it can serve as a `Primitive Node` or `ImpactInt`, it cannot function properly when connected through other nodes.
   * Guide
-    * When the `Switch (Any)` and `Inversed Switch (Any)` selects are transformed into primitives, it's important to be cautious because the select range is not appropriately constrained, potentially leading to unintended behavior.   
+    * When the `Switch (Any)` and `Inversed Switch (Any)` selects are transformed into primitives, it's important to be cautious because the select range is not appropriately constrained, potentially leading to unintended behavior.
     * `Switch (image,mask)`, `Switch (latent)`, `Switch (SEGS)`, `Switch (Any)` supports `sel_mode` param. The `sel_mode` sets the moment at which the `select` parameter is determined. `select_on_prompt` determines the `select` at the time of queuing the prompt, while `select_on_execution` determines it during the execution of the workflow. While `select_on_execution` offers more flexibility, it can potentially trigger workflow execution errors due to running nodes that may be impossible to execute within the limitations of ComfyUI. `select_on_prompt` bypasses this constraint by treating any inputs not selected as if they were disconnected. However, please note that when using `select_on_prompt`, the `select` can only be used with widgets or `Primitive Nodes` determined at the queue prompt.
     * There is an issue when connecting the built-in reroute node with the switch's input/output slots. it can lead to forced disconnections during workflow loading. Therefore, it is advisable not to use reroute for making connections in such cases. However, there are no issues when using the reroute node in Pythongossss.
 
@@ -226,7 +241,7 @@ This custom node helps to conveniently enhance images through Detector, Detailer
   * `KSampler (advanced/pipe)` - pipe version of KSamplerAdvacned
   * When converting the scheduler widget to input, refer to the `Impact Scheduler Adapter` node to resolve compatibility issues.
   * `GITSScheduler Func Provider` - provider scheduler function for GITSScheduler
-  
+
 
 ### Batch/List Util
   * `Image batch To Image List` - Convert Image batch to Image List
@@ -236,18 +251,18 @@ This custom node helps to conveniently enhance images through Detector, Detailer
     - The input of images can be scaled up as needed
 
 
-### Logics (experimental) 
+### Logics (experimental)
   * These nodes are experimental nodes designed to implement the logic for loops and dynamic switching.
   * `ImpactCompare`, `ImpactConditionalBranch`, `ImpactConditionalBranchSelMode`, `ImpactInt`, `ImpactValueSender`, `ImpactValueReceiver`, `ImpactImageInfo`, `ImpactMinMax`, `ImpactNeg`, `ImpactConditionalStopIteration`
-  * `ImpactIsNotEmptySEGS` - This node returns `true` only if the input SEGS is not empty. 
+  * `ImpactIsNotEmptySEGS` - This node returns `true` only if the input SEGS is not empty.
   * `ImpactIfNone` - Returns `true` if any_input is None, and returns `false` if it is not None.
   * `Queue Trigger` - When this node is executed, it adds a new queue to assist with repetitive tasks. It will only execute if the signal's status changes.
   * `Queue Trigger (Countdown)` - Like the Queue Trigger, it adds a queue, but only adds it if it's greater than 1, and decrements the count by one each time it runs.
   * `Sleep` - Waits for the specified time (in seconds).
   * `Set Widget Value` - This node sets one of the optional inputs to the specified node's widget. An error may occur if the types do not match.
   * `Set Mute State` - This node changes the mute state of a specific node.
-  * `Control Bridge` - This node modifies the state of the connected control nodes based on the `mode` and `behavior` . If there are nodes that require a change, the current execution is paused, the mute status is updated, and a new prompt queue is inserted. 
-    * When the `mode` is `active`, it makes the connected control nodes active regardless of the behavior. 
+  * `Control Bridge` - This node modifies the state of the connected control nodes based on the `mode` and `behavior` . If there are nodes that require a change, the current execution is paused, the mute status is updated, and a new prompt queue is inserted.
+    * When the `mode` is `active`, it makes the connected control nodes active regardless of the behavior.
     * When the `mode` is `Bypass/Mute`, it changes the state of the connected nodes based on whether the behavior is `Bypass` or `Mute`.
     * **Limitation**: Due to these characteristics, it does not function correctly when the batch count exceeds 1. Additionally, it does not guarantee proper operation when the seed is randomized or when the state of nodes is altered by actions such as `Queue Trigger`, `Set Widget Value`, `Set Mute`, before the Control Bridge.
     * When utilizing this node, please structure the workflow in such a way that `Queue Trigger`, `Set Widget Value`, `Set Mute State`, and similar actions are executed at the end of the workflow.
@@ -272,7 +287,7 @@ This custom node helps to conveniently enhance images through Detector, Detailer
 ### Etc nodes
   * `Impact Scheduler Adapter` - With the addition of AYS to the scheduler of the Impact Pack and Inspire Pack, there is an issue of incompatibility when the existing scheduler widget is converted to input. The Impact Scheduler Adapter allows for an indirect connection to be possible.
   * `StringListToString` - Convert String List to String
-  * `WildcardPromptFromString` - Create labeled wildcard for detailer from string. 
+  * `WildcardPromptFromString` - Create labeled wildcard for detailer from string.
     * This node works well when used with MakeTileSEGS. [[Link](https://github.com/ltdrdata/ComfyUI-Impact-Pack/pull/536#discussion_r1586060779)]
 
   * `String Selector` - It selects and returns a portion of the string. When `multiline` mode is disabled, it simply returns the string of the line pointed to by the selector. When `multiline` mode is enabled, it divides the string based on lines that start with `#` and returns them. If the `select` value is larger than the number of items, it will start counting from the first line again and return accordingly.
@@ -338,7 +353,7 @@ mmdet_skip = False
 
 6. Restart ComfyUI
 
-* NOTE1: If an error occurs during the installation process, please refer to [Troubleshooting Page](troubleshooting/TROUBLESHOOTING.md) for assistance. 
+* NOTE1: If an error occurs during the installation process, please refer to [Troubleshooting Page](troubleshooting/TROUBLESHOOTING.md) for assistance.
 * NOTE2: You can use this colab notebook [colab notebook](https://colab.research.google.com/github/ltdrdata/ComfyUI-Impact-Pack/blob/Main/notebook/comfyui_colab_impact_pack.ipynb) to launch it. This notebook automatically downloads the impact pack to the custom_nodes directory, installs the tested dependencies, and runs it.
 * NOTE3: If you create an empty file named `skip_download_model` in the `ComfyUI/custom_nodes/` directory, it will skip the model download step during the installation of the impact pack.
 
@@ -352,7 +367,7 @@ mmdet_skip = False
    * piexif
    * (optional) pycocotools
    * (optional) onnxruntime
-   
+
 * mim install (deprecated)
    * mmcv==2.0.0, mmdet==3.0.0, mmengine==0.7.2
 
@@ -418,7 +433,7 @@ sam_editor_model = sam_vit_b_01ec64.pth
 
 #### 4. Iterative Upscale
 ![upscale-workflow-example](https://github.com/ltdrdata/ComfyUI-extension-tutorials/raw/Main/ComfyUI-Impact-Pack/images/upscale-workflow.png)
- 
+
 * The IterativeUpscale node is a node that enlarges an image/latent by a scale_factor. In this process, the upscale is carried out progressively by dividing it into steps.
 * IterativeUpscale takes an Upscaler as an input, similar to a plugin, and uses it during each iteration. PixelKSampleUpscalerProvider is an Upscaler that converts the latent representation to pixel space and applies ksampling.
   * The upscale_model_opt is an optional parameter that determines whether to use the upscale function of the model base if available. Using the upscale function of the model base can significantly reduce the number of iterative steps required. If an x2 upscaler is used, the image/latent is first upscaled by a factor of 2 and then downscaled to the target scale at each step before further processing is done.
